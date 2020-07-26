@@ -1,4 +1,4 @@
-from auth.app import db
+from app import db
 from werkzeug.security import generate_password_hash, check_password_hash
 
 import datetime
@@ -24,3 +24,9 @@ class User(db.Model):
 
     def __repr__(self):
         return f'<User {self.email}>'
+
+
+class Key(db.Model):
+    __tablename__ = 'keys'
+
+    id = db.Column(db.Integer, primary_key=True)

@@ -1,5 +1,5 @@
-from auth import models
-from auth.app import ma
+from models import User
+from app import ma
 from marshmallow import fields, post_load, validates_schema, ValidationError
 from marshmallow.validate import Length, Equal
 
@@ -22,7 +22,12 @@ class UserSchema(ma.Schema):
 
     @post_load
     def create_user(self, data, **kwargs):
-        return models.User(**data)
+        return User(**data)
 
     class Meta:
         fields = ('email', 'password', "confirm_password", 'joined_at')
+
+
+class LoginSchema(ma.Schema):
+    email = fields.Email(required=True, validate=Length(min=3, max=254))
+    password = fields.Str(required=True, validate=Length(min=4))

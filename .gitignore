@@ -137,4 +137,9 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+# vscode settings
 .vscode
+
+# Private and public keys
+**/private/*
+**/public/*

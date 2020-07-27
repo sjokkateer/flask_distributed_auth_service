@@ -17,21 +17,16 @@ class JWT:
 
     @classmethod
     def create_tokens(cls, user_id):
-        from models import Key
-
-        keys = Key.get_n_most_recent_keys(3) # Number of rotation keys could be set dynamically through env
-        key_id = random.choice(keys).id
-
-        private_key_file = KeyFolder.get_private_key_folder() / str(key_id)
-        private_key = open(private_key_file).read()
+        key_id = cls.get_random_key_id()
+        private_key = cls.get_private_key(key_id)
 
         now = datetime.utcnow()
         payload = {
             'user_id': user_id,
             'key_id': key_id
         }
-        access_token = cls.create_token(Token.ACCESS, now, payload, private_key).decode('utf-8')
-        refresh_token = cls.create_token(Token.REFRESH, now, payload, private_key).decode('utf-8')
+        access_token = cls.create_token(Token.ACCESS, now, payload, private_key)
+        refresh_token = cls.create_token(Token.REFRESH, now, payload, private_key)
 
         return {
             'access_token': access_token,
@@ -39,7 +34,27 @@ class JWT:
         }
 
     @classmethod
+    def get_random_key_id(cls):
+        from models import Key
+
+        keys = Key.get_n_most_recent_keys(3) # Number of rotation keys could be set dynamically through env
+        return random.choice(keys).id
+
+    @classmethod
+    def get_private_key(cls, id):
+        private_key_file = KeyFolder.get_private_key_folder() / str(id)
+        return open(private_key_file).read()
+
+    @classmethod
     def create_token(cls, token_type, current_time, payload, private_key):
+        ttl = cls.get_ttl(token_type)
+
+        payload['exp'] = current_time + ttl
+
+        return jwt.encode(payload, private_key, algorithm=cls.ALGORITHM).decode('utf-8')
+
+    @classmethod
+    def get_ttl(cls, token_type):
         if token_type == Token.ACCESS:
             ttl = timedelta(minutes=15)
         elif token_type == Token.REFRESH:
@@ -47,9 +62,25 @@ class JWT:
         else:
             raise TypeError(f'{token_type!r} is not a valid token type!')
 
-        payload['exp'] = current_time + ttl
+        return ttl
 
-        return jwt.encode(payload, private_key, algorithm=cls.ALGORITHM)
+    @classmethod
+    def create_token_from_existing_payload(cls, token_type, payload):
+        key_id = cls.get_random_key_id()
+        private_key = cls.get_private_key(key_id)
+
+        now = datetime.now()
+        
+        return cls.create_token(token_type, now, payload, private_key)
+
+    @classmethod
+    def decode(cls, refresh_token):
+        payload = jwt.decode(refresh_token, verify=False)
+
+        key_id = payload['key_id']
+        public_key = open(KeyFolder.get_public_key_folder() / str(key_id)).read()
+
+        return jwt.decode(refresh_token, public_key, algorithms=cls.ALGORITHM)
 
 
 class KeyFolder:

@@ -1,10 +1,10 @@
-from models import User, Key
-from schemas import LoginSchema, UserSchema
 from app import db
-from classes import JWT, KeyFolder
+from classes import JWT, KeyFolder, Token
 from flask import jsonify, request
 from flask.views import MethodView
 from marshmallow import ValidationError
+from models import User, Key
+from schemas import LoginSchema, UserSchema
 from sqlalchemy import exc
 
 
@@ -69,3 +69,16 @@ class RotationKeyView(MethodView):
             response['keys'].append({key.id: open(pub_key_file).read()})
 
         return jsonify(response)
+
+
+class RefreshTokenView(MethodView):
+    def post(self):
+        data = request.get_json()
+        refresh_token = data.get('refresh_token')
+
+        if not refresh_token: return jsonify({'message': 'TBD'})
+
+        payload = JWT.decode(refresh_token)
+        access_token = JWT.create_token_from_existing_payload(Token.ACCESS, payload)
+        
+        return jsonify({'access_token': access_token})

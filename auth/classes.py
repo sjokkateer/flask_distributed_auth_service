@@ -1,8 +1,12 @@
-import jwt
-import random
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
 from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
+
+import jwt
+import random
 
 
 class Token(Enum):
@@ -120,4 +124,57 @@ class KeyFolder:
     @classmethod
     def get_public_key_folder(cls):
         return cls.create_and_get_key_folder(cls.PUBLIC_KEY_FOLDER)
+
+
+class KeyGenerator:
+    @staticmethod
+    def generate_key_pair():
+        key_id = KeyGenerator.generate_key_id()
+        private_key = KeyGenerator.generate_private_key(key_id)
+        KeyGenerator.generate_public_key(private_key, key_id)
+
+    @staticmethod
+    def generate_key_id() -> int:
+        from app import db
+        from models import Key
+        
+        key = Key()
+        db.session.add(key)
+        db.session.commit()
+        
+        return key.id
+
+    @staticmethod
+    def generate_private_key(key_id):
+        private_key = rsa.generate_private_key(
+            public_exponent=65537,
+            key_size=4096,
+            backend=default_backend()
+        )
+
+        pem = private_key.private_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+
+        KeyGenerator.write_key_to_file(KeyFolder.get_private_key_folder() / str(key_id), pem)
+
+        return private_key
+
+    @staticmethod
+    def write_key_to_file(file_name, pem):
+        with open(file_name, 'wb') as f:
+            f.write(pem)
+
+    @staticmethod
+    def generate_public_key(private_key, key_id):
+        public_key = private_key.public_key()
+
+        pem = public_key.public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+
+        KeyGenerator.write_key_to_file(KeyFolder.get_public_key_folder() / str(key_id), pem)
 

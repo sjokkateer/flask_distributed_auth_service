@@ -13,7 +13,7 @@ ma = Marshmallow(app)
 
 
 from models import User, Key
-from views import LoginView, RegistrationView
+from views import LoginView, RegistrationView, RotationKeyView
 
 @app.shell_context_processor
 def make_shell_context():
@@ -22,3 +22,4 @@ def make_shell_context():
 # Routes go here
 app.add_url_rule('/login', view_func=LoginView.as_view('login'))
 app.add_url_rule('/register', view_func=RegistrationView.as_view('register'))
+app.add_url_rule('/keys', view_func=RotationKeyView.as_view('keys'))

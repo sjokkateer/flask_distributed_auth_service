@@ -1,7 +1,7 @@
-from models import User
+from models import User, Key
 from schemas import LoginSchema, UserSchema
 from app import db
-from classes import JWT
+from classes import JWT, KeyFolder
 from flask import jsonify, request
 from flask.views import MethodView
 from marshmallow import ValidationError
@@ -35,6 +35,7 @@ class RegistrationView(MethodView):
                 }
             })
 
+
 class LoginView(MethodView):
     def post(self):
         try:
@@ -52,3 +53,19 @@ class LoginView(MethodView):
             return jsonify({
                 'error': e.messages
             })
+
+
+class RotationKeyView(MethodView):
+    def get(self):
+        '''
+        This would be a good candidate for caching, since most likely the keys will often be requested
+        unless an application would cache the keys themselves to validate payloads
+        '''
+        response = {'keys': []}
+        active_keys = Key.get_n_most_recent_keys(3)
+        
+        for key in active_keys:
+            pub_key_file = KeyFolder.get_public_key_folder() / str(key.id)
+            response['keys'].append({key.id: open(pub_key_file).read()})
+
+        return jsonify(response)

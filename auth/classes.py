@@ -11,12 +11,12 @@ class JWT:
     @classmethod
     def create_tokens(cls, user_id):
         from models import Key
-        keys = Key.query.order_by(Key.id.desc()).limit(3).all()
 
+        keys = Key.get_n_most_recent_keys(3) # Number of rotation keys could be set dynamically through env
         key_id = random.choice(keys).id
 
-        secret_key_file = Path(__file__).parent / 'keys' / 'private' / str(key_id)
-        secret_key = open(secret_key_file).read()
+        private_key_file = KeyFolder.get_private_key_folder() / str(key_id)
+        private_key = open(private_key_file).read()
 
         now = datetime.utcnow()
 
@@ -25,7 +25,7 @@ class JWT:
             'user_id': user_id,
             'key_id': key_id,
             }, 
-            secret_key, 
+            private_key, 
             algorithm=cls.ALGORITHM
         ).decode('utf-8')
         
@@ -34,7 +34,7 @@ class JWT:
             'user_id': user_id,
             'key_id': key_id,
             }, 
-            secret_key, 
+            private_key, 
             algorithm=cls.ALGORITHM
         ).decode('utf-8')
 
@@ -42,3 +42,38 @@ class JWT:
             'access_token': access_token,
             'refresh_token': refresh_token
         }
+
+
+class KeyFolder:
+    # Could be dynamically set if required
+    KEY_FOLDER = 'keys'
+    PRIVATE_KEY_FOLDER = 'private'
+    PUBLIC_KEY_FOLDER = 'public'
+
+    @classmethod
+    def get_key_folder(cls):
+        key_folder = Path(__file__).parent / cls.KEY_FOLDER
+        cls.create_if_not_exists(key_folder)
+        
+        return key_folder
+
+    @classmethod
+    def create_if_not_exists(cls, dir):
+        if not dir.exists():
+            dir.mkdir()
+
+    @classmethod
+    def get_private_key_folder(cls):
+        return cls.create_and_get_key_folder(cls.PRIVATE_KEY_FOLDER)
+
+    @classmethod
+    def create_and_get_key_folder(cls, folder):
+        path_to_key_folder = cls.get_key_folder() / folder
+        cls.create_if_not_exists(path_to_key_folder)
+
+        return path_to_key_folder
+
+    @classmethod
+    def get_public_key_folder(cls):
+        return cls.create_and_get_key_folder(cls.PUBLIC_KEY_FOLDER)
+

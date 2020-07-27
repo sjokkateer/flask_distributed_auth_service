@@ -1,4 +1,5 @@
 from app import db
+from pathlib import Path
 from werkzeug.security import generate_password_hash, check_password_hash
 
 import datetime
@@ -30,3 +31,7 @@ class Key(db.Model):
     __tablename__ = 'keys'
 
     id = db.Column(db.Integer, primary_key=True)
+
+    @classmethod
+    def get_n_most_recent_keys(cls, n):
+        return cls.query.order_by(cls.id.desc()).limit(n).all()

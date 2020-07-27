@@ -1,12 +1,8 @@
+from classes import KeyFolder
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from pathlib import Path
-
-
-path_to_keys = Path(__file__).parent / 'keys'
-path_to_private_keys = path_to_keys / 'private'
-path_to_public_keys = path_to_keys / 'public'
 
 
 def create_key() -> int:
@@ -38,7 +34,7 @@ pem = private_key.private_bytes(
 )
 
 # Write private key to file
-with open(path_to_private_keys / str(key_id), 'wb') as f:
+with open(KeyFolder.get_private_key_folder() / str(key_id), 'wb') as f:
     f.write(pem)
 
 # Same for public key
@@ -49,5 +45,5 @@ pem = public_key.public_bytes(
     format=serialization.PublicFormat.SubjectPublicKeyInfo
 )
 
-with open(path_to_public_keys / str(key_id), 'wb') as f:
+with open(KeyFolder.get_public_key_folder() / str(key_id), 'wb') as f:
     f.write(pem)

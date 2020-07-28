@@ -143,3 +143,5 @@ cython_debug/
 # Private and public keys
 **/private/*
 **/public/*
+
+**/flask_session/*

@@ -8,6 +8,11 @@ verify_ssl = true
 [packages]
 flask = "*"
 flask-wtf = "*"
+flask-login = "*"
+requests = "*"
+email-validator = "*"
+flask-session = "*"
+pyjwt = "*"
 
 [requires]
-python_version = "3.6"
+python_version = "3.8"

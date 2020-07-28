@@ -6,4 +6,9 @@ Home
 
 {% block content %}
 Beep Boop
+
+{% if current_user.is_authenticated %}
+Welcome {{ current_user.id }}
+{% endif %}
+
 {% endblock %}

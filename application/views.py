@@ -3,7 +3,7 @@ from enum import Enum
 from flask import redirect, render_template, request, session, url_for
 from flask.views import View, MethodView
 from flask_login import login_user, current_user
-from forms import LoginForm
+from forms import LoginForm, ImageForm
 from functools import wraps
 
 
@@ -63,4 +63,19 @@ class LoginView(MethodView):
                 return redirect(url)
                 # else we got an error
 
+        # Finally, invalid info
         return 'you wish'
+
+
+class ImageUploadView(MethodView):
+    def get(self):
+        return render_template('image-upload.html', form=ImageForm())
+
+    def post(self):
+        form = ImageForm()
+
+        if form.validate_on_submit():
+            # post to api endpoint.
+            return 'Sent'
+
+        return 'Something went wrong'

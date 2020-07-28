@@ -1,9 +1,9 @@
 from .config import Config
-from .views import LoginView, TemplateView
+from .views import LoginView, TemplateView, ImageUploadView
 from classes import User
 from datetime import datetime
 from flask import Flask, flash, render_template, redirect, session, url_for
-from flask_login import LoginManager, login_required, logout_user
+from flask_login import current_user, LoginManager, login_required, logout_user
 from flask_session import Session
 
 
@@ -22,13 +22,15 @@ def load_user(user_id):
 
 @app.route('/logout')
 def logout():
-    logout_user()
-    flash('See you next time!')
+    if current_user.is_authenticated:
+        logout_user()
+        flash('See you next time!')
+    
     return redirect(url_for('index'))
 
 
 app.add_url_rule('/', view_func=TemplateView.as_view('index', template_name='index.html'))
 app.add_url_rule('/login', view_func=LoginView.as_view('login'))
 
-something_view = login_required(TemplateView.as_view('something', template_name='something.html'))
-app.add_url_rule('/some-page', view_func=something_view)
+image_upload_view = login_required(ImageUploadView.as_view('image'))
+app.add_url_rule('/image', view_func=image_upload_view)

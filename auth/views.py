@@ -1,11 +1,14 @@
 from app import db
-from classes import JWT, KeyFolder, Token
+from classes import JWT, KeyFolder, Token, NoTokenException
+from decorators import get_payload_from_token
 from flask import jsonify, request
 from flask.views import MethodView
 from marshmallow import ValidationError
 from models import User, Profile, Key
 from schemas import LoginSchema, UserSchema, ProfileSchema
 from sqlalchemy import exc
+
+import jwt
 
 
 user_schema = UserSchema()
@@ -83,20 +86,19 @@ class RotationKeyView(MethodView):
 
 
 class RefreshTokenView(MethodView):
-    def post(self):
-        data = request.get_json()
-        refresh_token = data.get('refresh_token')
-
-        if not refresh_token: return jsonify({'message': 'TBD'})
-
-        payload = JWT.decode(refresh_token)
-        access_token = JWT.create_token_from_existing_payload(Token.ACCESS, payload)
+    def get(self):
+        try:
+            payload = get_payload_from_token(request)
+            access_token = JWT.create_token_from_existing_payload(Token.ACCESS, payload)
         
-        return jsonify({'access_token': access_token})
+            return jsonify({'access_token': access_token})
+        except jwt.exceptions.ExpiredSignatureError as e:
+            return jsonify({'message': e.args[0]}), 401
+        except NoTokenException as e:
+            return jsonify({'message': e.args[0]}), 403
 
 
 class UserView(MethodView):
-    # This will be 'secret' data which only the user can get.
     def get(self, id: int):
         target_user = User.query.get(id)
         

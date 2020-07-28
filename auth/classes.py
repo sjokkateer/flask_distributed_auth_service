@@ -78,13 +78,31 @@ class JWT:
         return cls.create_token(token_type, now, payload, private_key)
 
     @classmethod
-    def decode(cls, refresh_token):
-        payload = jwt.decode(refresh_token, verify=False)
+    def decode(cls, token):
+        # Could result in a decode error when something random was given as token
+        payload = jwt.decode(token, verify=False)
 
+        # Key_id could not be present in case token was decoded but for ex was made
+        # by something else then our server
         key_id = payload['key_id']
         public_key = open(KeyFolder.get_public_key_folder() / str(key_id)).read()
 
-        return jwt.decode(refresh_token, public_key, algorithms=cls.ALGORITHM)
+        return jwt.decode(token, public_key, algorithms=cls.ALGORITHM)
+
+
+class NoTokenException(Exception):
+    pass
+
+
+class TokenExtractor:
+    @staticmethod
+    def extract(request):
+        auth_header = request.headers
+        bearer_token = auth_header.get('Authorization')
+
+        if not bearer_token: raise NoTokenException('No token provided!')
+
+        return bearer_token.split()[-1]
 
 
 class KeyFolder:

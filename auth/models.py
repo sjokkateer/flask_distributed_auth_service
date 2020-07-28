@@ -13,6 +13,8 @@ class User(db.Model):
     password = db.Column(db.String(94))
     joined_at = db.Column(db.DateTime, default=datetime.datetime.now)
 
+    profile = db.relationship('Profile', backref='users', uselist=False)
+
     def __init__(self, email, password):
         self.email = email
         self.password = self.hash(password)
@@ -25,6 +27,26 @@ class User(db.Model):
 
     def __repr__(self):
         return f'<User {self.email}>'
+
+
+class Profile(db.Model):
+    __tablename__ = 'profiles'
+
+    id = db.Column(db.Integer, primary_key=True)
+    first_name = db.Column(db.String(50))
+    last_name = db.Column(db.String(50))
+
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, unique=True)
+
+    def __init__(self, first_name, last_name):
+        self.first_name = first_name
+        self.last_name = last_name
+
+    def get_full_name(self) -> str:
+        return f'{self.first_name} {self.last_name}'
+
+    def __repr__(self) -> str:
+        return f'<Profile of {self.get_full_name()}>'
 
 
 class Key(db.Model):

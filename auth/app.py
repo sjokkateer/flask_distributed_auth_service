@@ -12,11 +12,11 @@ migrate = Migrate(app, db)
 ma = Marshmallow(app)
 
 
-from models import User, Key
+from models import User, Profile, Key
 import commands
 import routes
 
 
 @app.shell_context_processor
 def make_shell_context():
-    return {'db': db, 'User': User, 'Key': Key}
+    return {'db': db, 'User': User, 'Profile': Profile, 'Key': Key}

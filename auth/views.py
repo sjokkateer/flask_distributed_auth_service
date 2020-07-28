@@ -89,3 +89,8 @@ class RefreshTokenView(MethodView):
         access_token = JWT.create_token_from_existing_payload(Token.ACCESS, payload)
         
         return jsonify({'access_token': access_token})
+
+
+class UserView(MethodView):
+    def get(self, id: int):
+        pass

@@ -4,11 +4,18 @@ from marshmallow import fields, post_load, validates_schema, ValidationError
 from marshmallow.validate import Length, Equal
 
 
+class ProfileSchema(ma.Schema):
+    first_name = fields.Str(validate=Length(min=1, max=50))
+    last_name = fields.Str(validate=Length(min=1, max=50))
+
+
 class UserSchema(ma.Schema):
     email = fields.Email(required=True, validate=Length(min=3, max=254))
     password = fields.Str(load_only=True, required=True, validate=Length(min=4))
     confirm_password = fields.Str(load_only=True, required=True)
     joined_at = fields.DateTime(dump_only=True)
+
+    profile = fields.Nested(ProfileSchema, dump_only=True)
 
     @validates_schema
     def ensure_equal_to_password(self, data, **kwargs):
@@ -25,7 +32,7 @@ class UserSchema(ma.Schema):
         return User(**data)
 
     class Meta:
-        fields = ('email', 'password', "confirm_password", 'joined_at')
+        fields = ('id', 'email', 'profile', 'password', 'confirm_password', 'joined_at')
 
 
 class LoginSchema(ma.Schema):

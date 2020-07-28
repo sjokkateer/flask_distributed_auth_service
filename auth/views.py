@@ -3,13 +3,14 @@ from classes import JWT, KeyFolder, Token
 from flask import jsonify, request
 from flask.views import MethodView
 from marshmallow import ValidationError
-from models import User, Key
-from schemas import LoginSchema, UserSchema
+from models import User, Profile, Key
+from schemas import LoginSchema, UserSchema, ProfileSchema
 from sqlalchemy import exc
 
 
 user_schema = UserSchema()
 login_schema = LoginSchema()
+profile_schema = ProfileSchema()
 
 
 class RegistrationView(MethodView):
@@ -48,7 +49,10 @@ class LoginView(MethodView):
 
             if not user.is_valid(validated_data['password']): return jsonify({'error': 'Incorrect password!'})
 
-            return jsonify({'tokens': JWT.create_tokens(user.id)})
+            return jsonify({
+                'tokens': JWT.create_tokens(user.id),
+                'user': user_schema.dump(user)
+            })
         except ValidationError as e:
             return jsonify({
                 'error': e.messages
@@ -92,5 +96,8 @@ class RefreshTokenView(MethodView):
 
 
 class UserView(MethodView):
+    # This will be 'secret' data which only the user can get.
     def get(self, id: int):
-        pass
+        target_user = User.query.get(id)
+        
+        return jsonify({'user': user_schema.dump(target_user)})

@@ -1,10 +1,14 @@
 from classes import LoginClient, User
 from enum import Enum
-from flask import redirect, render_template, request, session, url_for
+from flask import flash, redirect, render_template, request, session, url_for
 from flask.views import View, MethodView
 from flask_login import login_user, current_user
 from forms import LoginForm, ImageForm
 from functools import wraps
+
+import base64
+import os
+import requests
 
 
 class HttpMethods(Enum):
@@ -67,7 +71,25 @@ class LoginView(MethodView):
         return 'you wish'
 
 
+def clear_previous_session_image(function):
+    def wrapper(*args, **kwargs):
+        uploaded_image = session.get('uploaded_image')
+        
+        if uploaded_image:
+            counter = session.get('display_counter', 0)
+            session['display_counter'] = counter + 1
+
+            if session['display_counter'] > 1:
+                session.pop('uploaded_image', None)
+
+        return function(*args, **kwargs)
+    
+    return wrapper
+
+
 class ImageUploadView(MethodView):
+    decorators = [clear_previous_session_image]
+
     def get(self):
         return render_template('image-upload.html', form=ImageForm())
 
@@ -76,6 +98,26 @@ class ImageUploadView(MethodView):
 
         if form.validate_on_submit():
             # post to api endpoint.
-            return 'Sent'
+            image = form.image.data.stream.read()
+            string_image = f'data:{form.image.data.mimetype};base64,' + base64.b64encode(image).decode('utf-8')
+
+            url = f"{os.getenv('IMG_SERVER')}/"
+            data = {
+                'user_id': current_user.id,
+                'title': form.data.get('title'),
+                'image': string_image
+            }
+            
+            response = requests.post(url, json=data, headers={
+                'Authorization': f"Bearer {session['access_token']}"
+            })
+
+            if response.status_code == 200:
+                flash(f"Image {data['title']} successfully uploaded!")
+                
+                session['uploaded_image'] = response.json()['image']
+                session['display_counter'] = 0
+
+                return redirect(url_for('image'))
 
         return 'Something went wrong'

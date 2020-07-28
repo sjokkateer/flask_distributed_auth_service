@@ -5,10 +5,24 @@ Upload
 {% endblock %}
 
 {% block content %}
-<form action="{{ url_for('image') }}" method="post" enctype="multipart/form-data">
-    {{ form.hidden_tag() }}
-    {{ form.title.label }} {{ form.title }}
-    {{ form.image.label }} {{ form.image }}
-    <input type="submit" value="Upload">
-</form>
+<div style="width: 40%;">
+    <form action="{{ url_for('image') }}" method="post" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.title.label }} {{ form.title(class='form-control') }}
+        </div>
+        <div class="form-group">
+            {{ form.image.label }} {{ form.image(class='form-control-file') }}
+        </div>
+        <input class="btn btn-primary" type="submit" value="Upload">
+    </form>
+    {% if session.get('uploaded_image') %}
+    {% set image = session.get('uploaded_image') %}
+    <div class="text-center">
+        <img class="img-thumbnail" style="margin-top: 1.5rem;" width="75%" id="{{ image.id }}" src="{{ image.image }}"
+            alt="{{ image.title }}">
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}

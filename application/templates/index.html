@@ -8,7 +8,13 @@ Home
 Beep Boop
 
 {% if current_user.is_authenticated %}
-Welcome {{ current_user.id }}
+{% if current_user.first_name %}
+Welcome {{ current_user.first_name }}
+{% elif current_user.last_name %}
+Welcome sir/madam {{ current.last_name }}
+{% else %}
+Welcome user
+{% endif %}
 {% endif %}
 
 {% endblock %}

@@ -28,5 +28,25 @@ class LoginClient:
 
 
 class User(UserMixin):
-    def __init__(self, id):
+    def __init__(self, id, email=None, first_name=None, last_name=None, joined_at=None):
         self.id = id
+        self.email = email
+        self.first_name = first_name
+        self.last_name = last_name
+        self.joined_at = joined_at
+
+    @staticmethod
+    def from_data(user_data):
+        data = {
+            'id': user_data['id'], 
+            'email': user_data['email'],
+            'joined_at': user_data['joined_at'],
+        }
+
+        profile = user_data.get('profile')
+
+        if profile:
+            data['first_name'] = profile.get('first_name')
+            data['last_name'] = profile.get('last_name')
+
+        return User(**data)

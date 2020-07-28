@@ -6,8 +6,6 @@ from flask_login import login_user, current_user
 from forms import LoginForm
 from functools import wraps
 
-import jwt
-
 
 class HttpMethods(Enum):
     GET = 'GET'
@@ -48,15 +46,15 @@ class LoginView(MethodView):
         form = LoginForm()
 
         if form.validate_on_submit():
-            tokens = LoginClient.login(form.data['email'], form.data['password'])
+            data = LoginClient.login(form.data['email'], form.data['password'])
             
-            if not 'error' in tokens:
-                session['access_token'] = tokens['tokens']['access_token']
-                session['refresh_token'] = tokens['tokens']['refresh_token']
+            if not 'error' in data:
+                session['access_token'] = data['tokens']['access_token']
+                session['refresh_token'] = data['tokens']['refresh_token']
                 
-                user_id = jwt.decode(session['refresh_token'], verify=False)['user_id']
+                user = User.from_data(data['user'])
+                session[user.id] = user
 
-                user = User(user_id)
                 login_user(user)
 
                 # unsafe

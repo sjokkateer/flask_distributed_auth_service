@@ -6,9 +6,6 @@ from flask import Flask, flash, render_template, redirect, session, url_for
 from flask_login import LoginManager, login_required, logout_user
 from flask_session import Session
 
-import jwt
-import requests
-
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -20,19 +17,7 @@ Session(app)
 
 @login_manager.user_loader
 def load_user(user_id):
-    refresh_token = session.get('refresh_token')
-    payload = jwt.decode(refresh_token, verify=False)
-
-    now = datetime.now()
-
-    if payload['exp'] >= now:
-        access_token = session.get('access_token')
-        # make the request with the access token, if expired make request for 
-        # refresh, getting us a new access_token, making the same request as before
-        return User(user_id)
-    
-    return None
-
+    return session.get(int(user_id))
 
 
 @app.route('/logout')

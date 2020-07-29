@@ -1,4 +1,4 @@
-from classes import LoginClient, User
+from classes import LoginClient, User, AuthenticatedRequest, RequestMethod
 from enum import Enum
 from flask import flash, redirect, render_template, request, session, url_for
 from flask.views import View, MethodView
@@ -50,7 +50,7 @@ class LoginView(MethodView):
         form = LoginForm()
 
         if form.validate_on_submit():
-            data = LoginClient.login(form.data['email'], form.data['password'])
+            data = LoginClient.login(form.data['email'], form.data['password']).json()
             
             if not 'error' in data:
                 session['access_token'] = data['tokens']['access_token']
@@ -68,7 +68,7 @@ class LoginView(MethodView):
                 # else we got an error
 
         # Finally, invalid info
-        return 'you wish'
+        return redirect(url_for('login', next=request.args.get('next', '/')))
 
 
 def clear_previous_session_image(function):
@@ -97,7 +97,6 @@ class ImageUploadView(MethodView):
         form = ImageForm()
 
         if form.validate_on_submit():
-            # post to api endpoint.
             image = form.image.data.stream.read()
             string_image = f'data:{form.image.data.mimetype};base64,' + base64.b64encode(image).decode('utf-8')
 
@@ -108,9 +107,7 @@ class ImageUploadView(MethodView):
                 'image': string_image
             }
             
-            response = requests.post(url, json=data, headers={
-                'Authorization': f"Bearer {session['access_token']}"
-            })
+            response = AuthenticatedRequest.make(url, method=RequestMethod.POST, json=data)
 
             if response.status_code == 200:
                 flash(f"Image {data['title']} successfully uploaded!")

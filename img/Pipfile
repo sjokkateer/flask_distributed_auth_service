@@ -14,6 +14,7 @@ psycopg2 = "*"
 requests = "*"
 pyjwt = "*"
 cryptography = "*"
+psycopg2-binary = "*"
 
 [requires]
 python_version = "3.6"

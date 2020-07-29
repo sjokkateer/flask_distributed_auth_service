@@ -24,7 +24,11 @@ class ImageUploadView(MethodView):
         response = requests.get(url)
         pub_key = response.json()[f'{key_id}']
 
-        payload = jwt.decode(access_token, pub_key, algorithms='RS256')
+        # Crashes on uploading when trying to verify an expired access_token
+        try:
+            payload = jwt.decode(access_token, pub_key, algorithms='RS256')
+        except jwt.exceptions.ExpiredSignatureError as e:
+            return jsonify({'message': e.args[0]}), 401
         
         user_id = payload.get('user_id')
         request_data = request.get_json()

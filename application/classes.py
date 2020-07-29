@@ -1,3 +1,4 @@
+from flask import session
 from flask_login import UserMixin
 
 import os
@@ -5,26 +6,83 @@ import requests
 import enum
 
 
+class RequestMethod(enum.Enum):
+    GET = 'GET'
+    POST = 'POST'
+    PUT = 'PUT'
+    PATCH = 'PATCH'
+    DELETE = 'DELETE'
+
+
 class StatusCode(enum.Enum):
     OK = 200
+    UNAUTHORIZED = 401
     NOT_FOUND = 404
 
 
+# Rename to AuthClient or something such that it will also handle refresh
 class LoginClient:
     @staticmethod
     def login(email, password):
         url = f'{LoginClient.get_host()}/login'
-        response = requests.post(url, json={
+        response = BaseRequest.make(url, RequestMethod.POST, {
             'email': email,
             'password': password
         })
+        
+        return response
+
+    @staticmethod
+    def refresh():
+        url = f'{LoginClient.get_host()}/refresh'
+
+        response = BaseRequest.make(url, method=RequestMethod.GET, headers={
+            'Authorization': AuthenticatedRequest.create_bearer_token(session.get('refresh_token'))
+        })
 
         if response.status_code == StatusCode.OK.value:
-            return response.json()
+            session['access_token'] = response.json()['access_token']
+        else:
+            raise Exception
+
 
     @staticmethod
     def get_host() -> str:
         return os.getenv('AUTH_SERVER')
+
+
+class BaseRequest:
+    @classmethod
+    def make(cls, url, method=None, json=None, headers={}):
+        if method == RequestMethod.PATCH:
+            response = requests.patch(url, json=json, headers=headers)
+        elif method == RequestMethod.POST:
+            response = requests.post(url, json=json, headers=headers)
+        elif method == RequestMethod.PUT:
+            response = requests.put(url, json=json, headers=headers)
+        elif method == RequestMethod.DELETE:
+            response = requests.delete(url, json=json, headers=headers)
+        else:
+            response = requests.get(url, json=json, headers=headers)
+        
+        return response
+
+
+class AuthenticatedRequest(BaseRequest):
+    @classmethod
+    def make(cls, url, method=None, json=None, headers={}):
+        headers['Authorization'] = cls.create_bearer_token(session.get('access_token'))
+        response = super().make(url, method, json, headers)
+
+        if response.status_code == StatusCode.UNAUTHORIZED.value:
+            LoginClient.refresh()
+            cls.make(url, method, json, headers)
+
+        return response
+
+    @classmethod
+    def create_bearer_token(cls, token):
+        return f'Bearer {token}'
 
 
 class User(UserMixin):

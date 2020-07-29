@@ -1,0 +1,19 @@
+{% extends 'layout.html' %}
+
+{% block title %}
+Uploaded Images
+{% endblock %}
+
+{% block content %}
+<div>
+    <h2 class="text-center">Your Uploaded Images</h2>
+    <hr>
+    {% if images %}
+        {% for image in images %}
+            {% include 'image-thumbnail.html' %}
+        {% endfor %}
+    {% else %}
+    You have not uploaded any images yet
+    {% endif %}
+</div>
+{% endblock %}

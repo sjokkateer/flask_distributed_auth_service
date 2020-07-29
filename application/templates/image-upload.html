@@ -18,11 +18,7 @@ Upload
     </form>
     {% if session.get('uploaded_image') %}
     {% set image = session.get('uploaded_image') %}
-    <div class="text-center">
-        <img class="img-thumbnail" style="margin-top: 1.5rem;" width="75%" id="{{ image.id }}" src="{{ image.image }}"
-            alt="{{ image.title }}">
-    </div>
+    {% include 'image-thumbnail.html' %}
+    {% endif %}
 </div>
-{% endif %}
-
 {% endblock %}

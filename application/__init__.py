@@ -1,5 +1,5 @@
 from .config import Config
-from .views import LoginView, TemplateView, ImageUploadView
+from .views import LoginView, TemplateView, ImageUploadView, ImagesView
 from classes import User
 from datetime import datetime
 from flask import Flask, flash, render_template, redirect, session, url_for
@@ -34,3 +34,4 @@ app.add_url_rule('/login', view_func=LoginView.as_view('login'))
 
 image_upload_view = login_required(ImageUploadView.as_view('image'))
 app.add_url_rule('/image', view_func=image_upload_view)
+app.add_url_rule('/images', view_func=ImagesView.as_view('images'))

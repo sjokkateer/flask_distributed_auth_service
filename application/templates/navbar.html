@@ -13,6 +13,11 @@
             <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('image') }}">Image Upload</a>
             </li>
+            {% if current_user.is_authenticated %}
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('images') }}">Uploaded Images</a>
+            </li>
+            {% endif %}
             <li class="nav-item">
                 {% if not current_user.is_authenticated %}
                 <a class="nav-link" href="{{ url_for('login') }}">Login</a>

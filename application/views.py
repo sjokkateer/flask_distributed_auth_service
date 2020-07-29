@@ -1,4 +1,4 @@
-from classes import LoginClient, User, AuthenticatedRequest, RequestMethod
+from classes import LoginClient, User, AuthenticatedRequest, RequestMethod, StatusCode
 from enum import Enum
 from flask import flash, redirect, render_template, request, session, url_for
 from flask.views import View, MethodView
@@ -72,6 +72,7 @@ class LoginView(MethodView):
 
 
 def clear_previous_session_image(function):
+    @wraps(function)
     def wrapper(*args, **kwargs):
         uploaded_image = session.get('uploaded_image')
         
@@ -118,3 +119,15 @@ class ImageUploadView(MethodView):
                 return redirect(url_for('image'))
 
         return 'Something went wrong'
+
+class ImagesView(MethodView):
+    def get(self):
+        images = []
+        url = f"{os.getenv('IMG_SERVER')}/"
+        response = AuthenticatedRequest.make(url, method=RequestMethod.GET)
+
+        if response.status_code == StatusCode.OK.value:
+            images = response.json().get('images')
+        
+        return render_template('images.html', images=images)
+

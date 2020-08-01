@@ -14,8 +14,10 @@ class Token(Enum):
     REFRESH = 1
 
 
-# Should facilitate a way for us to upload new private and public key pairs
-# Could do that with a shell script, even though this would ofcourse not work for windows
+# Should be refactored into two pieces, one a refresh token
+# and one an access token class where refresh token is the base class
+# since it requires similar functionality but less extensive than
+# the access token
 class JWT:
     ALGORITHM = 'RS256'
 
@@ -64,7 +66,7 @@ class JWT:
         elif token_type == Token.REFRESH:
             ttl = timedelta(days=30)
         else:
-            raise TypeError(f'{token_type!r} is not a valid token type!')
+            raise InvalidTokenTypeException(f'{token_type!r} is not a valid token type!')
 
         return ttl
 
@@ -88,6 +90,10 @@ class JWT:
         public_key = open(KeyFolder.get_public_key_folder() / str(key_id)).read()
 
         return jwt.decode(token, public_key, algorithms=cls.ALGORITHM)
+
+
+class InvalidTokenTypeException(Exception):
+    pass
 
 
 class NoTokenException(Exception):
@@ -145,6 +151,8 @@ class KeyFolder:
 
 
 class KeyGenerator:
+    # Change such that it can take file name or use the key_id
+    # if no file name is provided
     @staticmethod
     def generate_key_pair():
         key_id = KeyGenerator.generate_key_id()

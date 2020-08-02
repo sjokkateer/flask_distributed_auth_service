@@ -1,4 +1,5 @@
 from classes import *
+from os import remove
 from pathlib import Path
 from shutil import rmtree
 
@@ -87,11 +88,23 @@ class TestKeyFolder(unittest.TestCase):
         self.assertTrue(actual_path_to_public_key_folder.exists(), 'Since the method also creates the folder if it did not exist')
     
 
-class KeyGenerator(unittest.TestCase):
-    pass
-    # After instantiating, should have generated a private and public key pair
+class TestKeyGenerator(unittest.TestCase):
+    def test_key_generator_generates_private_and_public_key_pair_on_instantiation(self):
+        # Arrange, Act
+        key_generator = KeyGenerator()
+
+        # Assert
+        self.assertIsNotNone(key_generator.private_key, 'Since the private key should be generated and assigned.')
+        self.assertIsNotNone(key_generator.public_key, 'Since the public key should be generated and assigned.')
+
 
 class KeyFileWriter(unittest.TestCase):
+    # Arrange
+
+    # Act
+
+    # Assert
+
     pass
     # Writing both private and public keys should make the files exist with data.
 

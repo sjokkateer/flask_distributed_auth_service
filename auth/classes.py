@@ -21,7 +21,8 @@ class Token(Enum):
 # the access token
 class JWT:
     ALGORITHM = 'RS256'
-
+    NUMBER_OF_RANDOM_KEYS = 3
+    
     @classmethod
     def create_tokens(cls, user_id):
         key_id = cls.get_random_key_id()
@@ -44,9 +45,7 @@ class JWT:
     @classmethod
     def get_random_key_id(cls):
         from models import Key
-
-        keys = Key.get_n_most_recent_keys(3) # Number of rotation keys could be set dynamically through env
-        return random.choice(keys).id
+        return Key.get_random_key_out_of_n(cls.NUMBER_OF_RANDOM_KEYS).id
 
     @classmethod
     def get_private_key(cls, id):

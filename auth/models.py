@@ -1,5 +1,6 @@
 from app import db
 from pathlib import Path
+from random import choice
 from werkzeug.security import generate_password_hash, check_password_hash
 
 import datetime
@@ -56,5 +57,9 @@ class Key(db.Model):
     is_refresh_token_key = db.Column(db.Boolean, default=False)
 
     @classmethod
-    def get_n_most_recent_keys(cls, n):
-        return cls.query.order_by(cls.id.desc()).limit(n).all()
+    def get_n_most_recent_keys(cls, n, is_refresh_token_key=False):
+        return cls.query.filter_by(is_refresh_token_key=is_refresh_token_key).order_by(cls.id.desc()).limit(n).all()
+
+    @classmethod
+    def get_random_key_out_of_n(cls, n, is_refresh_token_key=False):
+        return choice(cls.get_n_most_recent_keys(n, is_refresh_token_key))

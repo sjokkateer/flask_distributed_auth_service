@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -112,6 +113,9 @@ class TokenExtractor:
 
 
 class KeyFolder:
+    '''
+    Class is responsible for returning the paths to the key folders.
+    '''
     # Could be dynamically set if required
     KEY_FOLDER = 'keys'
     PRIVATE_KEY_FOLDER = 'private'
@@ -123,7 +127,7 @@ class KeyFolder:
     # will be made on each login call and when the key generation
     # script is run 
     @classmethod
-    def get_key_folder(cls):
+    def get_key_folder(cls) -> Path:
         key_folder = Path(__file__).parent / cls.KEY_FOLDER
         cls.create_if_not_exists(key_folder)
         
@@ -135,72 +139,118 @@ class KeyFolder:
             dir.mkdir()
 
     @classmethod
-    def get_private_key_folder(cls):
+    def get_private_key_folder(cls) -> Path:
         return cls.create_and_get_key_folder(cls.PRIVATE_KEY_FOLDER)
 
     @classmethod
-    def create_and_get_key_folder(cls, folder):
+    def create_and_get_key_folder(cls, folder) -> Path:
         path_to_key_folder = cls.get_key_folder() / folder
         cls.create_if_not_exists(path_to_key_folder)
 
         return path_to_key_folder
 
     @classmethod
-    def get_public_key_folder(cls):
+    def get_public_key_folder(cls) -> Path:
         return cls.create_and_get_key_folder(cls.PUBLIC_KEY_FOLDER)
 
 
 class KeyGenerator:
-    # Change such that it can take file name or use the key_id
-    # if no file name is provided
-    @staticmethod
-    def generate_key_pair():
-        key_id = KeyGenerator.generate_key_id()
-        private_key = KeyGenerator.generate_private_key(key_id)
-        KeyGenerator.generate_public_key(private_key, key_id)
+    '''
+    Class is responsible for generating a private and public
+    key pair on instantiation (RSA).
+    '''
+    def __init__(self):
+        self.private_key = None
+        self.public_key = None
 
-    @staticmethod
-    def generate_key_id() -> int:
-        from app import db
-        from models import Key
-        
-        key = Key()
-        db.session.add(key)
-        db.session.commit()
-        
-        return key.id
+        self.generate_key_pair()
 
-    @staticmethod
-    def generate_private_key(key_id):
-        private_key = rsa.generate_private_key(
+    def generate_key_pair(self):
+        self.private_key = self.generate_private_key()
+        self.public_key = self.private_key.public_key()
+
+    def generate_private_key(self):
+        return rsa.generate_private_key(
             public_exponent=65537,
             key_size=4096,
             backend=default_backend()
         )
 
-        pem = private_key.private_bytes(
+
+class KeyFileWriter:
+    '''
+    Class is responsible for writing the generated keys to
+    their respective folders.
+    '''
+    def __init__(self, key_generator: KeyGenerator):
+        self.key_generator = key_generator
+        self.key_file_write_strategy = None
+
+    def write_keys_to_file(self, key_file_name: str):
+        self.write_private_key_to_file(key_file_name)
+        self.write_public_key_to_file(key_file_name)
+
+    def write_private_key_to_file(self, key_file_name: str):
+        self.key_file_write_strategy = PrivateKeyFileWriteStrategy(self.key_generator.private_key)
+        self.write_key_to_file(key_file_name)
+
+    def write_key_to_file(self, key_file_name: str):
+        with open(self.key_file_write_strategy.get_path_to_key_folder() / key_file_name, 'wb') as f:
+            f.write(self.key_file_write_strategy.get_pem())
+
+    def write_public_key_to_file(self, key_file_name: str):
+        self.key_file_write_strategy = PublicKeyFileWriteStrategy(self.key_generator.public_key)
+        self.write_key_to_file(key_file_name)
+
+
+class KeyFileWriteStrategy(ABC):
+    '''
+    Class serves as a base for the key file writing strategy.
+    '''
+    def __init__(self, key)
+        self.key = key
+
+    @abstractmethod
+    def get_pem(self):
+        pass
+
+    @abstractmethod
+    def get_path_to_key_folder(self) -> str:
+        pass
+
+
+class PrivateKeyFileWriteStrategy(KeyFileWriteStrategy):
+    '''
+    Class is responsible for converting the private key into bytes
+    and providing the right private key folder.
+    '''
+    def __init__(self, key):
+        super().__init__(key)
+
+    def get_pem(self):
+        return self.key.private_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PrivateFormat.PKCS8,
             encryption_algorithm=serialization.NoEncryption()
         )
 
-        KeyGenerator.write_key_to_file(KeyFolder.get_private_key_folder() / str(key_id), pem)
+    def get_path_to_key_folder(self) -> Path:
+        return KeyFolder.get_private_key_folder()
 
-        return private_key
 
-    @staticmethod
-    def write_key_to_file(file_name, pem):
-        with open(file_name, 'wb') as f:
-            f.write(pem)
+class PublicKeyFileWriteStrategy(KeyFileWriteStrategy):
+    '''
+    Class is responsible for converting the public key into bytes
+    and providing the right public key folder.
+    '''
+    def __init__(self, key):
+        super().__init__(key)
 
-    @staticmethod
-    def generate_public_key(private_key, key_id):
-        public_key = private_key.public_key()
-
-        pem = public_key.public_bytes(
+    def get_pem(self):
+        return self.key.public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
 
-        KeyGenerator.write_key_to_file(KeyFolder.get_public_key_folder() / str(key_id), pem)
-
+    def get_path_to_key_folder(self) -> Path:
+        return KeyFolder.get_public_key_folder()

@@ -1,4 +1,4 @@
-from classes import JWT, TokenExtractor
+from classes import JWT, TokenExtractor, NoTokenException
 from flask import request, jsonify
 
 import jwt

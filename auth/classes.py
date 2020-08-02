@@ -4,6 +4,7 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from datetime import datetime, timedelta
 from enum import Enum
+from models import Key
 from pathlib import Path
 
 import jwt
@@ -25,7 +26,7 @@ class JWT:
     
     @classmethod
     def create_tokens(cls, user_id):
-        key_id = cls.get_random_key_id()
+        key_id = Key.get_random_key_out_of_n(cls.NUMBER_OF_RANDOM_KEYS).id
         private_key = cls.get_private_key(key_id)
 
         now = datetime.utcnow()
@@ -34,18 +35,17 @@ class JWT:
             'key_id': key_id
         }
         access_token = cls.create_token(Token.ACCESS, now, payload, private_key)
+
+        # Similarly get a key id from the recent refresh token key ids
+        key_id = Key.get_random_key_out_of_n(cls.NUMBER_OF_RANDOM_KEYS, is_refresh_token_key=True).id
+        payload['key_id'] = key_id
+        private_key = cls.get_private_key(key_id)
         refresh_token = cls.create_token(Token.REFRESH, now, payload, private_key)
 
         return {
             'access_token': access_token,
             'refresh_token': refresh_token
         }
-
-    # Move to key model
-    @classmethod
-    def get_random_key_id(cls):
-        from models import Key
-        return Key.get_random_key_out_of_n(cls.NUMBER_OF_RANDOM_KEYS).id
 
     @classmethod
     def get_private_key(cls, id):
@@ -73,7 +73,8 @@ class JWT:
 
     @classmethod
     def create_token_from_existing_payload(cls, token_type, payload):
-        key_id = cls.get_random_key_id()
+        key_id = Key.get_random_key_out_of_n(cls.NUMBER_OF_RANDOM_KEYS).id
+        payload['key_id'] = key_id
         private_key = cls.get_private_key(key_id)
 
         now = datetime.now()

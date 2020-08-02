@@ -207,7 +207,7 @@ class KeyFileWriteStrategy(ABC):
     '''
     Class serves as a base for the key file writing strategy.
     '''
-    def __init__(self, key)
+    def __init__(self, key):
         self.key = key
 
     @abstractmethod

@@ -1,4 +1,6 @@
-from classes import JWT, Token, InvalidTokenTypeException
+from classes import *
+from pathlib import Path
+from shutil import rmtree
 
 import unittest
 
@@ -38,10 +40,52 @@ class TestJWTAccessTokens(unittest.TestCase):
 
 
 class TestKeyFolder(unittest.TestCase):
-    pass
-    # In case a folder does not exits, it should be created
-    # private and public key folders should be created on call to get, and a path object returned
+    test_key_folder = f'tests/{KeyFolder.KEY_FOLDER}'
+    private = 'private'
+    public = 'public'
 
+    def setUp(self):
+        KeyFolder.KEY_FOLDER = self.test_key_folder
+
+    def tearDown(self):
+        rmtree(KeyFolder.get_key_folder())
+
+    def test_get_key_folder_when_key_folder_does_not_exist_expected_key_folder_created(self):
+        # Arrange + an assert that the folders should be removed!
+        expected_path_to_key_folder = Path.cwd() / KeyFolder.KEY_FOLDER
+        self.assertFalse(expected_path_to_key_folder.exists())
+
+        # Act
+        actual_path_to_key_folder = KeyFolder.get_key_folder()
+        
+        # Assert
+        self.assertEquals(expected_path_to_key_folder, actual_path_to_key_folder, 'Since both paths should refer to the same directory')
+        self.assertTrue(actual_path_to_key_folder.exists(), 'Since the method also creates the folder if it did not exist')
+    
+    def test_get_private_key_folder_when_private_key_folder_does_not_exist_expected_private_key_folder_created(self):
+        # Arrange + an assert that the folders should be removed!
+        expected_path_to_private_key_folder = Path.cwd() / self.test_key_folder / self.private
+        self.assertFalse(expected_path_to_private_key_folder.exists())
+
+        # Act
+        actual_path_to_private_key_folder = KeyFolder.get_private_key_folder()
+        
+        # Assert
+        self.assertEquals(expected_path_to_private_key_folder, actual_path_to_private_key_folder, 'Since both paths should refer to the same directory')
+        self.assertTrue(actual_path_to_private_key_folder.exists(), 'Since the method also creates the folder if it did not exist')
+    
+    def test_get_public_key_folder_when_public_key_folder_does_not_exist_expected_public_key_folder_created(self):
+        # Arrange + an assert that the folders should be removed!
+        expected_path_to_public_key_folder = Path.cwd() / self.test_key_folder / self.public
+        self.assertFalse(expected_path_to_public_key_folder.exists())
+
+        # Act
+        actual_path_to_public_key_folder = KeyFolder.get_public_key_folder()
+        
+        # Assert
+        self.assertEquals(expected_path_to_public_key_folder, actual_path_to_public_key_folder, 'Since both paths should refer to the same directory')
+        self.assertTrue(actual_path_to_public_key_folder.exists(), 'Since the method also creates the folder if it did not exist')
+    
 
 class KeyGenerator(unittest.TestCase):
     pass

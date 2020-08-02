@@ -40,6 +40,7 @@ class JWT:
             'refresh_token': refresh_token
         }
 
+    # Move to key model
     @classmethod
     def get_random_key_id(cls):
         from models import Key

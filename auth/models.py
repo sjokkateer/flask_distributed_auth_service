@@ -53,6 +53,7 @@ class Key(db.Model):
     __tablename__ = 'keys'
 
     id = db.Column(db.Integer, primary_key=True)
+    is_refresh_token_key = db.Column(db.Boolean, default=False)
 
     @classmethod
     def get_n_most_recent_keys(cls, n):

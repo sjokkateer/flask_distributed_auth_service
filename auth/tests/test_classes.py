@@ -1,5 +1,5 @@
 from classes import *
-from os import remove
+from os.path import getsize
 from pathlib import Path
 from shutil import rmtree
 
@@ -98,15 +98,31 @@ class TestKeyGenerator(unittest.TestCase):
         self.assertIsNotNone(key_generator.public_key, 'Since the public key should be generated and assigned.')
 
 
-class KeyFileWriter(unittest.TestCase):
-    # Arrange
+class TestKeyFileWriter(unittest.TestCase):
+    test_key_folder = f'tests/{KeyFolder.KEY_FOLDER}'
 
-    # Act
+    def setUp(self):
+        KeyFolder.KEY_FOLDER = self.test_key_folder
 
-    # Assert
+    def tearDown(self):
+        rmtree(KeyFolder.get_key_folder())
 
-    pass
-    # Writing both private and public keys should make the files exist with data.
+    def test_write_keys_to_file_with_a_valid_file_name_provided_expected_two_keys_created_and_written_into_a_file_both_in_private_and_public_folders_respectively(self):
+        # Arrange
+        key_generator = KeyGenerator()
+        key_file_writer = KeyFileWriter(key_generator)
+        
+        key_file_name = 'test_key'
+
+        # Act
+        key_file_writer.write_keys_to_file(key_file_name)
+
+        # Assert
+        private_key_file_has_content = getsize(KeyFolder.get_private_key_folder() / key_file_name) > 0
+        self.assertTrue(private_key_file_has_content, 'Since the private key should be written to a file')
+
+        public_key_file_has_content = getsize(KeyFolder.get_public_key_folder() / key_file_name) > 0
+        self.assertTrue(public_key_file_has_content, 'Since the public key should be written to a file')
 
 
 if __name__ == '__main__':

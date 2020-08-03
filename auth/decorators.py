@@ -1,4 +1,4 @@
-from classes import JWT, TokenExtractor, NoTokenException
+from classes import TokenService, TokenExtractor, NoTokenException
 from flask import request, jsonify
 
 import jwt
@@ -6,7 +6,7 @@ import jwt
 
 def get_payload_from_token(request):
     access_token = TokenExtractor.extract(request)
-    return JWT.decode(access_token)
+    return TokenService.decode(access_token)
 
 
 def verify_token_and_user_resource_access(function):

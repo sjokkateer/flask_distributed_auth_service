@@ -3,95 +3,94 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from datetime import datetime, timedelta
-from enum import Enum
 from models import Key
 from pathlib import Path
 
 import jwt
-import random
 
 
-class Token(Enum):
-    ACCESS = 0
-    REFRESH = 1
-
-
-# Should be refactored into two pieces, one a refresh token
-# and one an access token class where refresh token is the base class
-# since it requires similar functionality but less extensive than
-# the access token
-class JWT:
-    ALGORITHM = 'RS256'
-    NUMBER_OF_RANDOM_KEYS = 3
-    
-    @classmethod
-    def create_tokens(cls, user_id):
-        key_id = Key.get_random_key_out_of_n(cls.NUMBER_OF_RANDOM_KEYS).id
-        private_key = cls.get_private_key(key_id)
-
-        now = datetime.utcnow()
-        payload = {
-            'user_id': user_id,
-            'key_id': key_id
-        }
-        access_token = cls.create_token(Token.ACCESS, now, payload, private_key)
-
-        # Similarly get a key id from the recent refresh token key ids
-        key_id = Key.get_random_key_out_of_n(cls.NUMBER_OF_RANDOM_KEYS, is_refresh_token_key=True).id
-        payload['key_id'] = key_id
-        private_key = cls.get_private_key(key_id)
-        refresh_token = cls.create_token(Token.REFRESH, now, payload, private_key)
-
-        return {
-            'access_token': access_token,
-            'refresh_token': refresh_token
-        }
+class TokenService:
+    selected_token = None
 
     @classmethod
-    def get_private_key(cls, id):
-        private_key_file = KeyFolder.get_private_key_folder() / str(id)
-        return open(private_key_file).read()
+    def create_tokens(cls, initial_payload):
+        '''
+        Creates an access token and refresh token with given initial payload.
+        '''
+        tokens = [
+            ('access_token', AccessToken),
+            ('refresh_token', RefreshToken),
+        ]
+
+        token_response = {}
+        for token in tokens:
+            token_type = token[1]
+            cls.selected_token = token_type
+            
+            name = token[0]
+            token_response[name] = cls.create_token(initial_payload.copy())
+
+        return token_response
 
     @classmethod
-    def create_token(cls, token_type, current_time, payload, private_key):
-        ttl = cls.get_ttl(token_type)
-
-        payload['exp'] = current_time + ttl
-
-        return jwt.encode(payload, private_key, algorithm=cls.ALGORITHM).decode('utf-8')
-
-    @classmethod
-    def get_ttl(cls, token_type):
-        if token_type == Token.ACCESS:
-            ttl = timedelta(minutes=15)
-        elif token_type == Token.REFRESH:
-            ttl = timedelta(days=30)
-        else:
-            raise InvalidTokenTypeException(f'{token_type!r} is not a valid token type!')
-
-        return ttl
-
-    @classmethod
-    def create_token_from_existing_payload(cls, token_type, payload):
-        key_id = Key.get_random_key_out_of_n(cls.NUMBER_OF_RANDOM_KEYS).id
-        payload['key_id'] = key_id
-        private_key = cls.get_private_key(key_id)
-
-        now = datetime.now()
-        
-        return cls.create_token(token_type, now, payload, private_key)
+    def create_token(cls, initial_payload):
+        return cls.selected_token.create_token(initial_payload)
 
     @classmethod
     def decode(cls, token):
         # Could result in a decode error when something random was given as token
         payload = jwt.decode(token, verify=False)
-
         # Key_id could not be present in case token was decoded but for ex was made
         # by something else then our server
-        key_id = payload['key_id']
-        public_key = open(KeyFolder.get_public_key_folder() / str(key_id)).read()
+        public_key = KeyFileReader.get_public_key(str(payload['key_id']))
+        return jwt.decode(token, public_key, algorithms=TokenBase.ALGORITHM)
 
-        return jwt.decode(token, public_key, algorithms=cls.ALGORITHM)
+
+class TokenBase(ABC):
+    ALGORITHM = 'RS256'
+    NUMBER_OF_RANDOM_KEYS = 3
+
+    @classmethod
+    def create_token(cls, initial_payload):
+        payload = cls.create_payload(initial_payload)
+        return jwt.encode(payload, KeyFileReader.get_private_key(str(payload['key_id'])), algorithm=cls.ALGORITHM).decode('utf-8')
+
+    @classmethod
+    def create_payload(cls, initial_payload: dict) -> dict:
+        initial_payload['key_id'] = cls.get_random_key().id
+        initial_payload['exp'] += cls.get_time_to_live()
+        
+        return initial_payload
+
+    @classmethod
+    @abstractmethod
+    def get_time_to_live(cls) -> timedelta:
+        pass
+
+    @classmethod
+    @abstractmethod
+    def get_random_key(cls) -> Key:
+        pass
+
+
+class AccessToken(TokenBase):
+    @classmethod
+    def get_time_to_live(cls) -> timedelta:
+        return timedelta(minutes=15)
+
+    @classmethod
+    def get_random_key(cls) -> Key:
+        return Key.get_random_key_out_of_n(cls.NUMBER_OF_RANDOM_KEYS)
+
+
+class RefreshToken(TokenBase):
+    @classmethod
+    def get_time_to_live(cls) -> timedelta:
+        return timedelta(days=30)
+
+    @classmethod
+    def get_random_key(cls) -> Key:
+        return Key.get_random_key_out_of_n(cls.NUMBER_OF_RANDOM_KEYS, is_refresh_token_key=True)
 
 
 class InvalidTokenTypeException(Exception):
@@ -202,6 +201,19 @@ class KeyFileWriter:
     def write_public_key_to_file(self, key_file_name: str):
         self.key_file_write_strategy = PublicKeyFileWriteStrategy(self.key_generator.public_key)
         self.write_key_to_file(key_file_name)
+
+
+class KeyFileReader:
+    '''
+    Class is responsible for reading the contents from key files.
+    '''
+    @classmethod
+    def get_private_key(cls, key_file_name: str):
+        return open(KeyFolder.get_private_key_folder() / key_file_name).read()
+
+    @classmethod
+    def get_public_key(cls, key_file_name: str):
+        return open(KeyFolder.get_public_key_folder() / key_file_name).read()
 
 
 class KeyFileWriteStrategy(ABC):

@@ -1,5 +1,6 @@
 from app import db
-from classes import JWT, KeyFolder, Token, NoTokenException
+from classes import AccessToken, TokenService, KeyFileReader, NoTokenException
+from datetime import datetime
 from decorators import get_payload_from_token
 from flask import jsonify, request
 from flask.views import MethodView
@@ -53,7 +54,10 @@ class LoginView(MethodView):
             if not user.is_valid(validated_data['password']): return jsonify({'error': 'Incorrect password!'})
 
             return jsonify({
-                'tokens': JWT.create_tokens(user.id),
+                'tokens': TokenService.create_tokens({
+                    'user_id': user.id,
+                    'exp': datetime.now()
+                }),
                 'user': user_schema.dump(user)
             })
         except ValidationError as e:
@@ -74,13 +78,11 @@ class RotationKeyView(MethodView):
             response = {'keys': []}
             
             for key in active_keys:
-                pub_key_file = KeyFolder.get_public_key_folder() / str(key.id)
-                response['keys'].append({key.id: open(pub_key_file).read()})
+                response['keys'].append({key.id: KeyFileReader.get_public_key(str(key.id))})
         else:
             if key_id not in [key.id for key in active_keys]: return jsonify({'message': f'Key with {key_id} not found.'}), 404
             
-            pub_key_file = KeyFolder.get_public_key_folder() / str(key_id)
-            response = {key_id: open(pub_key_file).read()}
+            response = {key_id: KeyFileReader.get_public_key(str(key.id))}
 
         return jsonify(response)
 
@@ -89,7 +91,11 @@ class RefreshTokenView(MethodView):
     def get(self):
         try:
             payload = get_payload_from_token(request)
-            access_token = JWT.create_token_from_existing_payload(Token.ACCESS, payload)
+            TokenService.selected_token = AccessToken
+            access_token = TokenService.create_token({
+                'user_id': payload['user_id'],
+                'exp': datetime.now(),
+            })
         
             return jsonify({'access_token': access_token})
         except jwt.exceptions.ExpiredSignatureError as e:

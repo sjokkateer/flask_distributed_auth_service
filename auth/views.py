@@ -67,7 +67,7 @@ class LoginView(MethodView):
 
 
 class RotationKeyView(MethodView):
-    def get(self, key_id):
+    def get(self, key_id=None):
         '''
         This would be a good candidate for caching, since most likely the keys will often be requested
         unless an application would cache the keys themselves to validate payloads
@@ -80,9 +80,9 @@ class RotationKeyView(MethodView):
             for key in active_keys:
                 response['keys'].append({key.id: KeyFileReader.get_public_key(str(key.id))})
         else:
-            if key_id not in [key.id for key in active_keys]: return jsonify({'message': f'Key with {key_id} not found.'}), 404
+            if key_id not in [key.id for key in active_keys]: return jsonify({'message': f'Key with id {key_id} not found.'}), 404
             
-            response = {key_id: KeyFileReader.get_public_key(str(key.id))}
+            response = {key_id: KeyFileReader.get_public_key(str(key_id))}
 
         return jsonify(response)
 

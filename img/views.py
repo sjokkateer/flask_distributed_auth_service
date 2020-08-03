@@ -66,7 +66,8 @@ def get_access_token(request):
 
 def get_public_key(access_token):
     payload = jwt.decode(access_token, verify=False)
-        
+    
+    # In the future this should also make use of the token refreshing mechanism
     key_id = payload.get('key_id')
     url = f"{os.getenv('AUTH_SERVER')}/keys/{key_id}"
         

@@ -38,15 +38,16 @@ class TokenService:
 
     @classmethod
     def decode(cls, token):
-        # Could result in a decode error when something random was given as token
-        payload = jwt.decode(token, verify=False)
-        # Key_id could not be present in case token was decoded but for ex was made
-        # by something else then our server
-        public_key = KeyFileReader.get_public_key(str(payload['key_id']))
-        return jwt.decode(token, public_key, algorithms=TokenBase.ALGORITHM)
+        return cls.selected_token.decode(token)
 
 
 class TokenBase(ABC):
+    '''
+    Base class for the different token types.
+    
+    Class is responsible for providing a set of functionalities
+    shared by the specific token types.
+    '''
     ALGORITHM = 'RS256'
     NUMBER_OF_RANDOM_KEYS = 3
 
@@ -72,8 +73,21 @@ class TokenBase(ABC):
     def get_random_key(cls) -> Key:
         pass
 
+    @classmethod
+    def decode(cls, token):
+        # Could result in a decode error when something random was given as token
+        payload = jwt.decode(token, verify=False)
+        # Key_id could not be present in case token was decoded but for ex was made
+        # by something else then our server
+        public_key = KeyFileReader.get_public_key(str(payload['key_id']))
+        return jwt.decode(token, public_key, algorithms=cls.ALGORITHM)
+
 
 class AccessToken(TokenBase):
+    '''
+    Class resembling an access token, is responsible for 
+    providing access token specific ttl and key.
+    '''
     @classmethod
     def get_time_to_live(cls) -> timedelta:
         return timedelta(minutes=15)
@@ -84,6 +98,10 @@ class AccessToken(TokenBase):
 
 
 class RefreshToken(TokenBase):
+    '''
+    Class resembling a refresh token, is responsible for 
+    providing refresh token specific ttl and key.
+    '''
     @classmethod
     def get_time_to_live(cls) -> timedelta:
         return timedelta(days=30)
@@ -91,10 +109,6 @@ class RefreshToken(TokenBase):
     @classmethod
     def get_random_key(cls) -> Key:
         return Key.get_random_key_out_of_n(cls.NUMBER_OF_RANDOM_KEYS, is_refresh_token_key=True)
-
-
-class InvalidTokenTypeException(Exception):
-    pass
 
 
 class NoTokenException(Exception):

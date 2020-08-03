@@ -90,8 +90,8 @@ class RotationKeyView(MethodView):
 class RefreshTokenView(MethodView):
     def get(self):
         try:
-            payload = get_payload_from_token(request)
             TokenService.selected_token = AccessToken
+            payload = get_payload_from_token(request)
             access_token = TokenService.create_token({
                 'user_id': payload['user_id'],
                 'exp': datetime.now(),
